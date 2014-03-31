@@ -7,9 +7,9 @@ var con = 'psql://lamassu:lamassu@localhost/lamassu';
 var authorized = 'CB:3D:78:49:03:39:BA:47:0A:33:29:3E:31:25:F7:C6:4F:74:71:D7';
 
 test('authorize and check authorization', function(t){
-  var config = new LamassuConfig(con);
+  var config = new LamassuConfig(con, 1);
 
-  t.plan(14);
+  t.plan(18);
 
   config.isAuthorized('AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:4F:74:71:D7', function(err, authorized) {
     t.equal(err, null, 'There should be no error.');
@@ -54,6 +54,20 @@ test('authorize and check authorization', function(t){
     });
   });
 
+  config.createPairingToken(function(err, token) {
+    t.equal(err, null, 'There should be no error when creating a pairing token');
+
+    setTimeout(function() {
+      config.cleanExpiredPairingTokens(function(err) {
+        t.equal(err, null, 'There should be no error when cleaning expired pairing tokens');
+
+        config.pair(token, authorized, 'restaurant', function(err) {
+          t.ok(err, 'There should be an error when trying to pair with an expired token');
+          t.equal(err.message, 'Token not found', 'Token should be not found');
+        });
+      });
+    }, 2000);
+  });
 
   t.on('end', function () {
     config.end();
